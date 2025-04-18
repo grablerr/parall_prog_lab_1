@@ -5,6 +5,7 @@
 #include <chrono>
 #include <string>
 #include <filesystem>
+#include <omp.h>  
 
 using namespace std;
 using namespace chrono;
@@ -22,14 +23,14 @@ ostream& operator<<(ostream& os, const vector<vector<int>>& matrix) {
 vector<vector<int>> readCSV(const string& filename, int size) {
     ifstream file(filename);
     if (!file.is_open()) {
-        cerr << "Error: Can`t open file " << filename << endl;
+        cerr << "Error: Can't open file " << filename << endl;
         return {};
     }
 
     vector<vector<int>> matrix(size, vector<int>(size));
     string line;
-
     int rowIndex = 0;
+
     while (getline(file, line) && rowIndex < size) {
         stringstream ss(line);
         string cell;
@@ -58,13 +59,16 @@ void writeCSV(const string& filename, const vector<vector<int>>& matrix) {
 
 vector<vector<int>> multiplyMatrices(const vector<vector<int>>& A, const vector<vector<int>>& B, int size) {
     vector<vector<int>> result(size, vector<int>(size, 0));
+
+#pragma omp parallel for
     for (int i = 0; i < size; ++i) {
-        for (int j = 0; j < size; ++j) {
-            for (int k = 0; k < size; ++k) {
+        for (int k = 0; k < size; ++k) {
+            for (int j = 0; j < size; ++j) {
                 result[i][j] += A[i][k] * B[k][j];
             }
         }
     }
+
     return result;
 }
 
@@ -84,10 +88,15 @@ void multiplyAndSave(int size) {
 }
 
 int main() {
+
+    omp_set_num_threads(6);
+
+    std::cout << "OpenMP работает. Потоков: " << omp_get_max_threads() << std::endl;
+
     vector<int> sizes = { 128, 256, 384, 512, 640, 768, 896, 1024 };
     for (int size : sizes) {
         multiplyAndSave(size);
     }
-   
+
     return 0;
 }
